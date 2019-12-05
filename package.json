@@ -1,0 +1,22 @@
+{
+    "name": "leancrypt",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "compile": "tsc",
+        "test:compile": "tsc --watch --project tsconfig.test.json",
+        "test:serve": "npx browser-sync start --server --startPath test --watch", 
+        "test": "start npm run test:compile && start npm run test:serve"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/chai": "^4.2.6",
+        "@types/mocha": "^5.2.7",
+        "browser-sync": "^2.26.7",
+        "chai": "^4.2.0",
+        "mocha": "^6.2.2",
+        "typescript": "^3.7.3"
+    }
+}
