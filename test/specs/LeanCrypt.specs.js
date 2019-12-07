@@ -6,16 +6,9 @@ describe('LeanCrypt', () => {
             let leanCrypt = new LeanCrypt();
             let plainText = 'some text';
             let passphrase = 'a passphrase';
-            let cipherText = await leanCrypt.encrypt(plainText, passphrase);
+            let leanKey = await leanCrypt.newKey(passphrase);
+            let cipherText = await leanCrypt.encrypt(plainText, leanKey.key);
             expect(cipherText).to.not.equal(plainText);
-        });
-        it('encrypting same plain text yields differing cipher text (because of random salt & iv)', async () => {
-            let leanCrypt = new LeanCrypt();
-            let plainText = 'some text';
-            let passphrase = 'a passphrase';
-            let cipherText1 = await leanCrypt.encrypt(plainText, passphrase);
-            let cipherText2 = await leanCrypt.encrypt(plainText, passphrase);
-            expect(cipherText1).to.not.equal(cipherText2);
         });
     });
     describe('#decrypt()', () => {
@@ -23,19 +16,22 @@ describe('LeanCrypt', () => {
             let leanCrypt = new LeanCrypt();
             let plainText = 'some text';
             let passphrase = 'a passphrase';
-            let cipherText = await leanCrypt.encrypt(plainText, passphrase);
-            let decipheredText = await leanCrypt.decrypt(cipherText, passphrase);
-            expect(plainText).to.equal(decipheredText);
+            let leanKey = await leanCrypt.newKey(passphrase);
+            let cipherText = await leanCrypt.encrypt(plainText, leanKey.key);
+            let decipheredText = await leanCrypt.decrypt(cipherText, leanKey.key);
+            expect(decipheredText).to.equal(plainText);
         });
-        it('decrypting cipher texts produced from same plain texts yields same output (because salt & iv are encoded in encrypted result)', async () => {
+    });
+    describe('#getKey()', () => {
+        it('A key can be recreated with same passphrase & salt', async () => {
             let leanCrypt = new LeanCrypt();
             let plainText = 'some text';
             let passphrase = 'a passphrase';
-            let cipherText1 = await leanCrypt.encrypt(plainText, passphrase);
-            let cipherText2 = await leanCrypt.encrypt(plainText, passphrase);
-            let decipheredText1 = await leanCrypt.decrypt(cipherText1, passphrase);
-            let decipheredText2 = await leanCrypt.decrypt(cipherText2, passphrase);
-            expect(decipheredText1).to.equal(decipheredText2);
+            let leanKey1 = await leanCrypt.newKey(passphrase);
+            let cipherText = await leanCrypt.encrypt(plainText, leanKey1.key);
+            let leanKey2 = await leanCrypt.getKey(passphrase, leanKey1.salt);
+            let decipheredText = await leanCrypt.decrypt(cipherText, leanKey2.key);
+            expect(decipheredText).to.equal(plainText);
         });
     });
 });

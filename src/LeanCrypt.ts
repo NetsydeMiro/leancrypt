@@ -1,11 +1,13 @@
+import { randomBytes, toUtf8Bytes, fromUtf8Bytes, toBase64String, fromBase64String } from './utility.js'
+
 export class LeanCrypt {
     constructor(private pbkdf2Iterations: number = 100_000) { }
 
     // TODO: enable encrypting via key 
-    async encrypt(plainText: string, passphrase: string): Promise<string> 
-    async encrypt(buffer: ArrayBuffer, passphrase: string): Promise<LeanCrypted> 
+    async encrypt(plainText: string, key: CryptoKey): Promise<string> 
+    async encrypt(buffer: ArrayBuffer, key: CryptoKey): Promise<LeanCrypted> 
 
-    async encrypt(data: string | ArrayBuffer, passphrase: string): Promise<string | LeanCrypted> {
+    async encrypt(data: string | ArrayBuffer, key: CryptoKey): Promise<string | LeanCrypted> {
         let dataIsString = false
         let buffer: ArrayBuffer
 
@@ -15,8 +17,7 @@ export class LeanCrypt {
         }
         else buffer = data
 
-        let iv = this.randomBytes(32)
-        let { salt, key } = await this.getKey(passphrase)
+        let iv = randomBytes(32)
 
         let cipherText = await window.crypto.subtle.encrypt(
             {
@@ -26,15 +27,15 @@ export class LeanCrypt {
             key,
             buffer
         )
-        let leanCrypted = new LeanCrypted(salt, iv, cipherText)
+        let leanCrypted = new LeanCrypted(iv, cipherText)
 
         return dataIsString ? leanCrypted.toString() : leanCrypted
     }
 
-    async decrypt(encrypted: string, passphrase: string): Promise<string> 
-    async decrypt(leanCrypted: LeanCrypted, passphrase: string): Promise<ArrayBuffer> 
+    async decrypt(encrypted: string, key: CryptoKey): Promise<string> 
+    async decrypt(leanCrypted: LeanCrypted, key: CryptoKey): Promise<ArrayBuffer> 
 
-    async decrypt(data: string | LeanCrypted, passphrase: string): Promise<string | ArrayBuffer> {
+    async decrypt(data: string | LeanCrypted, key: CryptoKey): Promise<string | ArrayBuffer> {
         let dataIsString = false
         let leanCrypted: LeanCrypted
 
@@ -44,14 +45,12 @@ export class LeanCrypt {
         }
         else leanCrypted = data
 
-        let { salt, iv, cipherText } = leanCrypted
-
-        let { key } = await this.getKey(passphrase, salt)
+        let { iv, cipherText } = leanCrypted
 
         let decrypted = await window.crypto.subtle.decrypt(
             {
                 name: "AES-GCM",
-                iv: iv
+                iv
             },
             key,
             cipherText
@@ -59,32 +58,21 @@ export class LeanCrypt {
         return dataIsString ? fromUtf8Bytes(decrypted) : decrypted
     }
 
-    private async getKeyMaterial(passphrase: string): Promise<CryptoKey> {
-        let keyMaterial = window.crypto.subtle.importKey(
-            "raw",
-            toUtf8Bytes(passphrase),
-            { name: "PBKDF2" } as any,  // TODO: fix this in typescript definition
-            false,
-            ["deriveBits", "deriveKey"]
-        )
-        return keyMaterial
+    async newKey(passphrase: string): Promise<LeanKey> {
+        let salt = randomBytes(32)
+
+        return this.getKey(passphrase, salt)
     }
 
-    private randomBytes(numOfBytes: number): Uint8Array {
-        let bytes = new Uint8Array(numOfBytes)
-        window.crypto.getRandomValues(bytes)
-        return bytes
-    }
+    async getKey(passphrase: string, salt: string | Uint8Array): Promise<LeanKey> {
+        let saltBytes: Uint8Array = (typeof salt == 'string') ? fromBase64String(salt) : salt
 
-    private async getKey(passphrase: string, salt?: Uint8Array): Promise<SaltedKey> {
-        salt = salt ?? this.randomBytes(32)
-
-        let keyMaterial = await this.getKeyMaterial(passphrase)
+        let keyMaterial = await getKeyMaterial(passphrase)
 
         let key = await window.crypto.subtle.deriveKey(
             {
                 "name": "PBKDF2",
-                salt,
+                salt: saltBytes,
                 "iterations": this.pbkdf2Iterations,
                 "hash": "SHA-256"
             },
@@ -93,53 +81,49 @@ export class LeanCrypt {
             true,
             ["encrypt", "decrypt"]
         )
-        return { key, salt }
+        return new LeanKey(saltBytes, key)
     }
 }
 
-interface SaltedKey {
-    key: CryptoKey
-    salt: Uint8Array
+export class LeanKey {
+    constructor(
+        public salt: Uint8Array,
+        public key: CryptoKey
+    ) {
+        this.saltString = toBase64String(salt)
+    }
+
+    public saltString: string
 }
 
-class LeanCrypted {
+export class LeanCrypted {
     constructor(
-        public salt: Uint8Array, 
         public iv: Uint8Array,
         public cipherText: ArrayBuffer, 
     ) { }
 
     toString(): string {
-        return `${toBase64String(this.salt)}:${toBase64String(this.iv)}:${toBase64String(this.cipherText)}`
+        return `${toBase64String(this.iv)}:${toBase64String(this.cipherText)}`
     }
 
     static fromString(encryptedString: string): LeanCrypted {
         let parts = encryptedString.split(':')
 
-        let [salt, iv, cipherText] = parts.map(fromBase64String)
+        let [iv, cipherText] = parts.map(fromBase64String)
 
-        return new LeanCrypted(salt, iv, cipherText)
+        return new LeanCrypted(iv, cipherText)
     }
 }
 
-function toUtf8Bytes(plainText: string): Uint8Array {
-    let enc = new TextEncoder()
-    return enc.encode(plainText)
-}
-
-function fromUtf8Bytes(buffer: ArrayBuffer): string {
-    let dec = new TextDecoder()
-    return dec.decode(buffer)
-}
-
-function toBase64String(buffer: ArrayBuffer): string {
-    let base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-    return base64String
-}
-
-function fromBase64String(base64String: string): Uint8Array {
-    let buffer = Uint8Array.from(atob(base64String), c => c.charCodeAt(0))
-    return buffer
+async function getKeyMaterial(passphrase: string): Promise<CryptoKey> {
+    let keyMaterial = window.crypto.subtle.importKey(
+        "raw",
+        toUtf8Bytes(passphrase),
+        { name: "PBKDF2" } as any,  // TODO: fix this in typescript definition
+        false,
+        ["deriveBits", "deriveKey"]
+    )
+    return keyMaterial
 }
 
 export default LeanCrypt
