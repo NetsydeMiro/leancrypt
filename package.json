@@ -5,9 +5,18 @@
     "main": "index.js",
     "scripts": {
         "compile": "tsc",
-        "test:compile": "tsc --watch --project tsconfig.test.json",
-        "test:serve": "npx browser-sync start --server --startPath test --watch", 
-        "test": "start npm run test:compile && start npm run test:serve"
+
+        "dev:compile": "tsc --watch --project tsconfig.test.json",
+        "dev:serve": "npx browser-sync start --server --startPath test --watch",
+        "dev": "start npm run dev:compile && start npm run dev:serve",
+
+        "test:compile": "tsc --project tsconfig.test.json",
+        "test:serve": "npx browser-sync start --server --startPath test",
+        "test": "start npm run test:compile && start npm run test:serve",
+
+        "coverage:puppeteer": "node test/puppeteerDriver.js", 
+        "coverage:report": "nyc report --reporter=html", 
+        "coverage": "npm run coverage:puppeteer && npm run coverage:report"
     },
     "author": "",
     "license": "ISC",
@@ -17,6 +26,9 @@
         "browser-sync": "^2.26.7",
         "chai": "^4.2.0",
         "mocha": "^6.2.2",
+        "nyc": "^14.1.1",
+        "puppeteer": "^2.0.0",
+        "puppeteer-to-istanbul": "^1.2.2",
         "typescript": "^3.7.3"
     }
 }
