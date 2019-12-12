@@ -33,6 +33,12 @@
     <div id="mocha">
     </div>
 
+    <!-- TextEncoder/TextDecoder pollyfill (required by ie & edge -->
+    <script src="../node_modules/fastestsmallesttextencoderdecoder/EncoderDecoderTogether.min.js"></script>
+
+    <!-- subtle crypto pollyfill (required by ie & edge) -->
+    <script src="../node_modules/webcrypto-liner/build/webcrypto-liner.shim.js"></script>
+    <script src="./asmcrypto.js"></script>
 
     <script type='module' src="../node_modules/chai/chai.js"></script>
     <script type='module' src="../node_modules/mocha/mocha.js"></script>
