@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Code coverage report for utility.specs-4.js</title>
+    <title>Code coverage report for LeanCrypt.specs-9.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="prettify.css" />
     <link rel="stylesheet" href="base.css" />
@@ -16,18 +16,18 @@
 <div class='wrapper'>
   <div class='pad1'>
     <h1>
-      <a href="index.html">All files</a> utility.specs-4.js
+      <a href="index.html">All files</a> LeanCrypt.specs-9.js
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">100% </span>
+        <span class="strong">75% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>29/29</span>
+        <span class='fraction'>27/36</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>1/1</span>
+        <span class='fraction'>2/2</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
@@ -35,16 +35,16 @@
         <span class='fraction'>0/0</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">100% </span>
+        <span class="strong">75% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>29/29</span>
+        <span class='fraction'>27/36</span>
       </div>
     </div>
     <p class="quiet">
       Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
     </p>
   </div>
-  <div class='status-line high'></div>
+  <div class='status-line medium'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -74,7 +74,14 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -98,36 +105,50 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">let expect = chai.expect;
-import { hash } from '../src/utility.js';
-describe('utility', () =&gt; {
-    describe('hash()', () =&gt; {
-        it('Hashes the input', async () =&gt; {
-            let passphrase = 'a password';
-            let hashed = await hash(passphrase);
-            expect(hashed.hashString).to.not.equal(passphrase);
-            expect(hashed.saltString).to.not.equal(passphrase);
-            expect(hashed.hashString).to.not.equal(hashed.saltString);
+<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">"use strict";
+/// &lt;reference path="../src/LeanCrypt.ts" /&gt;
+let expect = chai.expect;
+describe('LeanCrypt', () =&gt; {
+    describe('#encrypt()', () =&gt; {
+        it('should encrypt plain text', async () =&gt; {
+            let plainText = 'some text';
+            let passphrase = 'a passphrase';
+            let leanKey = await LeanCrypt.newKey(passphrase);
+            let cipherText = await LeanCrypt.encrypt(plainText, leanKey.key);
+            expect(cipherText).to.not.equal(plainText);
         });
-        it('Hashes inputs to same values when salt provided', async () =&gt; {
-            let passphrase = 'a password';
-            let salt = 'some salt';
-            let hashed1 = await hash(passphrase, salt);
-            let hashed2 = await hash(passphrase, salt);
-            expect(hashed1.hashString).to.equal(hashed2.hashString);
-            expect(hashed1.saltString).to.equal(hashed2.saltString);
+    });
+    describe('#decrypt()', () =&gt; {
+        it('should decrypt cipher text', async () =&gt; {
+            let plainText = 'some text';
+            let passphrase = 'a passphrase';
+            let leanKey = await LeanCrypt.newKey(passphrase);
+            let cipherText = await LeanCrypt.encrypt(plainText, leanKey.key);
+            let decipheredText = await LeanCrypt.decrypt(cipherText, leanKey.key);
+            expect(decipheredText).to.equal(plainText);
         });
-        it('Hashes same inputs to different values when salt not provided (since it is randomly generated)', async () =&gt; {
-            let passphrase = 'a password';
-            let hashed1 = await hash(passphrase);
-            let hashed2 = await hash(passphrase);
-            expect(hashed1.hashString).to.not.equal(hashed2.hashString);
-            expect(hashed1.saltString).to.not.equal(hashed2.saltString);
-        });
+    });
+    describe('#getKey()', () =&gt; {
+<span class="cstat-no" title="statement not covered" >        it('A key can be recreated with same passphrase &amp; salt', async () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            let plainText = 'some text';</span>
+<span class="cstat-no" title="statement not covered" >            let passphrase = 'a passphrase';</span>
+<span class="cstat-no" title="statement not covered" >            let leanKey1 = await LeanCrypt.newKey(passphrase);</span>
+<span class="cstat-no" title="statement not covered" >            let cipherText = await LeanCrypt.encrypt(plainText, leanKey1.key);</span>
+<span class="cstat-no" title="statement not covered" >            let leanKey2 = await LeanCrypt.getKey(passphrase, leanKey1.salt);</span>
+<span class="cstat-no" title="statement not covered" >            let decipheredText = await LeanCrypt.decrypt(cipherText, leanKey2.key);</span>
+<span class="cstat-no" title="statement not covered" >            expect(decipheredText).to.equal(plainText);</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
     });
 });
 &nbsp;</pre></td></tr>
@@ -136,7 +157,7 @@ describe('utility', () =&gt; {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="https://istanbul.js.org/" target="_blank">istanbul</a> at Sat Dec 07 2019 12:27:33 GMT-0500 (Eastern Standard Time)
+  generated by <a href="https://istanbul.js.org/" target="_blank">istanbul</a> at Fri Dec 13 2019 00:16:37 GMT-0500 (Eastern Standard Time)
 </div>
 </div>
 <script src="prettify.js"></script>

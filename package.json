@@ -2,7 +2,7 @@
     "name": "leancrypt",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "dist/LeanCrypt.js",
     "scripts": {
         "compile": "tsc",
         "dev:compile": "tsc --watch --project tsconfig.test.json",
@@ -13,7 +13,9 @@
         "test": "start npm run test:compile && start npm run test:serve",
         "coverage:puppeteer": "node test/puppeteerDriver.js",
         "coverage:report": "nyc report --reporter=html",
-        "coverage": "npm run coverage:puppeteer && npm run coverage:report"
+        "coverage": "npm run coverage:puppeteer && npm run coverage:report",
+        "testem": "testem",
+        "testem:ci": "testem:ci"
     },
     "author": "",
     "license": "ISC",
@@ -26,6 +28,7 @@
         "nyc": "^14.1.1",
         "puppeteer": "^2.0.0",
         "puppeteer-to-istanbul": "^1.2.2",
+        "testem": "^3.0.2",
         "typescript": "^3.7.3"
     },
     "dependencies": {

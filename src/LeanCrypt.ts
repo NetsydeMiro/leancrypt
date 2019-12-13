@@ -1,19 +1,17 @@
-import { randomBytes, toUtf8Bytes, fromUtf8Bytes, toBase64String, fromBase64String } from './utility.js'
+namespace LeanCrypt {
 
-export class LeanCrypt {
-    constructor(private pbkdf2Iterations: number = 100_000) { }
+    const PBKDF2_ITERATIONS = 100_000
 
-    // TODO: enable encrypting via key 
-    async encrypt(plainText: string, key: CryptoKey): Promise<string> 
-    async encrypt(buffer: ArrayBuffer, key: CryptoKey): Promise<LeanCrypted> 
+    export async function encrypt(plainText: string, key: CryptoKey): Promise<string>
+    export async function encrypt(buffer: ArrayBuffer, key: CryptoKey): Promise<LeanCrypted>
 
-    async encrypt(data: string | ArrayBuffer, key: CryptoKey): Promise<string | LeanCrypted> {
+    export async function encrypt(data: string | ArrayBuffer, key: CryptoKey): Promise<string | LeanCrypted> {
         let dataIsString = false
         let buffer: ArrayBuffer
 
-        if (typeof data == 'string') { 
+        if (typeof data == 'string') {
             dataIsString = true
-            buffer = toUtf8Bytes(data) 
+            buffer = toUtf8Bytes(data)
         }
         else buffer = data
 
@@ -32,10 +30,10 @@ export class LeanCrypt {
         return dataIsString ? leanCrypted.toString() : leanCrypted
     }
 
-    async decrypt(encrypted: string, key: CryptoKey): Promise<string> 
-    async decrypt(leanCrypted: LeanCrypted, key: CryptoKey): Promise<ArrayBuffer> 
+    export async function decrypt(encrypted: string, key: CryptoKey): Promise<string>
+    export async function decrypt(leanCrypted: LeanCrypted, key: CryptoKey): Promise<ArrayBuffer>
 
-    async decrypt(data: string | LeanCrypted, key: CryptoKey): Promise<string | ArrayBuffer> {
+    export async function decrypt(data: string | LeanCrypted, key: CryptoKey): Promise<string | ArrayBuffer> {
         let dataIsString = false
         let leanCrypted: LeanCrypted
 
@@ -58,13 +56,30 @@ export class LeanCrypt {
         return dataIsString ? fromUtf8Bytes(decrypted) : decrypted
     }
 
-    async newKey(passphrase: string): Promise<LeanKey> {
-        let salt = randomBytes(32)
+    export async function encryptObject<T, K extends keyof T>(obj: T, props: Array<K>, key: CryptoKey): Promise<EncryptedObject<T, K>> {
+        let encryptedObject = {} as any
+        let encryptedProperties = {} as any
 
-        return this.getKey(passphrase, salt)
+        for (let prop of Object.keys(obj)) {
+            if (props.indexOf(prop as any) >= 0) {
+                encryptedProperties[prop] = (obj as any)[prop]
+            }
+            else {
+                encryptedObject[prop] = (obj as any)[prop]
+            }
+        }
+        encryptedObject.encrypted = await encrypt(JSON.stringify(encryptedProperties), key)
+
+        return encryptedObject
     }
 
-    async getKey(passphrase: string, salt: string | Uint8Array): Promise<LeanKey> {
+    export async function newKey(passphrase: string): Promise<LeanKey> {
+        let salt = randomBytes(32)
+
+        return getKey(passphrase, salt)
+    }
+
+    export async function getKey(passphrase: string, salt: string | Uint8Array): Promise<LeanKey> {
         let saltBytes: Uint8Array = (typeof salt == 'string') ? fromBase64String(salt) : salt
 
         let keyMaterial = await getKeyMaterial(passphrase)
@@ -73,7 +88,7 @@ export class LeanCrypt {
             {
                 "name": "PBKDF2",
                 salt: saltBytes,
-                "iterations": this.pbkdf2Iterations,
+                "iterations": PBKDF2_ITERATIONS,
                 "hash": "SHA-256"
             },
             keyMaterial,
@@ -83,47 +98,94 @@ export class LeanCrypt {
         )
         return new LeanKey(saltBytes, key)
     }
-}
 
-export class LeanKey {
-    constructor(
-        public salt: Uint8Array,
-        public key: CryptoKey
-    ) {
-        this.saltString = toBase64String(salt)
+    export class LeanKey {
+        constructor(
+            public salt: Uint8Array,
+            public key: CryptoKey
+        ) {
+            this.saltString = toBase64String(salt)
+        }
+
+        public saltString: string
     }
 
-    public saltString: string
-}
+    export class LeanCrypted {
+        constructor(
+            public iv: Uint8Array,
+            public cipherText: ArrayBuffer,
+        ) { }
 
-export class LeanCrypted {
-    constructor(
-        public iv: Uint8Array,
-        public cipherText: ArrayBuffer, 
-    ) { }
+        toString(): string {
+            return `${toBase64String(this.iv)}:${toBase64String(this.cipherText)}`
+        }
 
-    toString(): string {
-        return `${toBase64String(this.iv)}:${toBase64String(this.cipherText)}`
+        static fromString(encryptedString: string): LeanCrypted {
+            let parts = encryptedString.split(':')
+
+            let [iv, cipherText] = parts.map(fromBase64String)
+
+            return new LeanCrypted(iv, cipherText)
+        }
     }
 
-    static fromString(encryptedString: string): LeanCrypted {
-        let parts = encryptedString.split(':')
+    export class EncryptedProperties {
+        constructor(
+            public iv: Uint8Array,
+            public cipherText: ArrayBuffer,
+        ) { }
 
-        let [iv, cipherText] = parts.map(fromBase64String)
+        toString(): string {
+            return `${toBase64String(this.iv)}:${toBase64String(this.cipherText)}`
+        }
 
-        return new LeanCrypted(iv, cipherText)
+        static fromString(encryptedString: string): EncryptedProperties {
+            let parts = encryptedString.split(':')
+
+            let [iv, cipherText] = parts.map(fromBase64String)
+
+            return new EncryptedProperties(iv, cipherText)
+        }
+    }
+
+    export type EncryptedObject<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & {
+        encrypted: EncryptedProperties
+    }
+
+    async function getKeyMaterial(passphrase: string): Promise<CryptoKey> {
+        let keyMaterial = window.crypto.subtle.importKey(
+            "raw",
+            toUtf8Bytes(passphrase),
+            { name: "PBKDF2" } as any,  // TODO: fix this in typescript definition
+            false,
+            ["deriveBits", "deriveKey"]
+        )
+        return keyMaterial
+    }
+
+    export function randomBytes(numOfBytes: number): Uint8Array {
+        let bytes = new Uint8Array(numOfBytes)
+        window.crypto.getRandomValues(bytes)
+        return bytes
+    }
+
+    export function toUtf8Bytes(plainText: string): Uint8Array {
+        let enc = new TextEncoder()
+        return enc.encode(plainText)
+    }
+
+    export function fromUtf8Bytes(buffer: ArrayBuffer): string {
+        let dec = new TextDecoder()
+        return dec.decode(buffer)
+    }
+
+    export function toBase64String(buffer: ArrayBuffer): string {
+        let base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        return base64String
+    }
+
+    export function fromBase64String(base64String: string): Uint8Array {
+        let buffer = Uint8Array.from(atob(base64String), c => c.charCodeAt(0))
+        return buffer
     }
 }
-
-async function getKeyMaterial(passphrase: string): Promise<CryptoKey> {
-    let keyMaterial = window.crypto.subtle.importKey(
-        "raw",
-        toUtf8Bytes(passphrase),
-        { name: "PBKDF2" } as any,  // TODO: fix this in typescript definition
-        false,
-        ["deriveBits", "deriveKey"]
-    )
-    return keyMaterial
-}
-
-export default LeanCrypt
