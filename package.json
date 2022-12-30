@@ -24,7 +24,7 @@
         "@types/mocha": "^5.2.7",
         "browser-sync": "^2.26.7",
         "chai": "^4.2.0",
-        "mocha": "^6.2.2",
+        "mocha": "^10.2.0",
         "nyc": "^14.1.1",
         "puppeteer": "^2.0.0",
         "puppeteer-to-istanbul": "^1.2.2",
